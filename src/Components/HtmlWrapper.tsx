@@ -15,7 +15,7 @@ import styled from 'styled-components';
 import { useCkeditor } from '../Hooks/Ckeditor.hook';
 import { useEditor } from '../Hooks/Editor.hook';
 import { useHtmlWrapper } from '../Hooks/Htmlwrapper.hook';
-import { detectEmptyElement } from '../Utils/detectEmptyBody';
+import { detectElement, detectEmptyElement } from '../Utils/detectEmptyBody';
 
 interface HtmlWrapperProps {
   // children: React.DOMElement<React.DOMAttributes<Element>, Element>;
@@ -79,8 +79,9 @@ export const HtmlWrapper = memo(({ key, originalNode }: HtmlWrapperProps) => {
   );
   const draggable = activeHover === idRef.current;
   const cursetStyle = useMemo(() => (activeHover === idRef.current ? 'pointer' : 'default'), [activeHover, idRef]);
-  const outline = activeHover === idRef.current ? '2px dotted green' : 'unset';
-  const outlineClick = active === idRef.current ? '2px dotted red' : 'unset';
+  let outline = activeHover === idRef.current ? '2px solid rgb(121, 202, 182)' : 'unset';
+  const outlineClick = active === idRef.current ? '2px solid rgb(121, 202, 182)' : 'unset';
+  const wrapperHeight = idRef.current.getBoundingClientRect ? idRef.current.getBoundingClientRect().height : 'unset';
 
   // detect empty body
   if (detectEmptyElement(originalNode, 'body')) {
@@ -89,6 +90,31 @@ export const HtmlWrapper = memo(({ key, originalNode }: HtmlWrapperProps) => {
   // detect empty section
   if (detectEmptyElement(originalNode, 'section')) {
     console.info('empty section detected');
+  }
+
+  // if element is body/ section, to exceed the parent width and fill the container to outline,
+  //   recreate the children with first element being posibition absolute
+  let children = originalNode.children;
+  if (detectElement(originalNode, 'body') || detectElement(originalNode, 'section')) {
+    const outlineOverride = outline;
+    outline = 'unset';
+    children = [
+      createElement(
+        'div',
+        {
+          className: 'body-section-hover-wrapper',
+          style: {
+            position: 'absolute',
+            left: '10px',
+            right: '20px', // because of scroll bar
+            height: wrapperHeight,
+            outline: outlineOverride,
+          },
+        },
+        null
+      ),
+      ...children,
+    ];
   }
 
   return useMemo(
@@ -108,9 +134,22 @@ export const HtmlWrapper = memo(({ key, originalNode }: HtmlWrapperProps) => {
             outline: active === idRef.current ? outlineClick : outline,
           },
         },
-        originalNode.children
+        children
       ),
-    [idRef, draggable, onHover, onClick, originalNode, outline, cursetStyle, outlineClick, active, uniqueId]
+    [
+      idRef,
+      draggable,
+      onHover,
+      onClick,
+      originalNode,
+      outline,
+      cursetStyle,
+      outlineClick,
+      active,
+      uniqueId,
+      children,
+      wrapperHeight,
+    ]
   );
 
   // breaks the ui, so trying a different approach above,
