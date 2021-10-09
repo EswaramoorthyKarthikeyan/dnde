@@ -97,10 +97,17 @@ const converter = (element: HTMLElement, key = 0) => {
   if (element.className && element.className.includes('mj-text')) {
     // if element is mj-text, we edit it with customInlineEditor by making div 'contentEditable' true.
     //  do not handle children in react.
+    let processed = domParser.parseFromString(element.innerHTML, 'text/html');
+    if (processed.body.children.length === 1) {
+      processed.body.childNodes[0].contentEditable = 'true';
+      const html = processed.body.innerHTML;
+      const original = { nodeName, props: { ...attributes, dangerouslySetInnerHTML: { __html: html } } };
 
-    const original = { nodeName, props: { ...attributes, dangerouslySetInnerHTML: { __html: element.innerHTML } } };
-
-    return <HtmlWrapper uniqueKey={key++} originalNode={original} />;
+      return <HtmlWrapper uniqueKey={key++} originalNode={original} />;
+    } else {
+      console.log(processed);
+      throw new Error('unexpected behaviour in htmlParser');
+    }
   }
 
   for (let i = 0; i < element.childNodes.length; i++) {
